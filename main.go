@@ -7,20 +7,29 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/d4l3k/go-highlight"
 )
 
 var (
-	lang = flag.String("lang", "go", "specify the language")
-	file = flag.String("file", "", "specify the file")
+	file   = flag.String("file", "", "specify the file")
+	spaces = flag.Int("spaces", 0, "indentation spaces, if is 0 then use tabs")
+	lang   = flag.String("lang", "go", "specify the language")
+	help   = flag.Bool("help", false, "show help")
 )
+
+type Line struct {
+	Indent int
+	Text   string
+	Order  int
+}
 
 func main() {
 	flag.Parse()
 
-	if *file == "" {
+	if *file == "" || *help {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
@@ -35,18 +44,38 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var codeLines string
+	indentRegex := regexp.MustCompile(`^\t+`)
+
+	indentChars := 1
+
+	if *spaces > 0 {
+		indentRegex = regexp.MustCompile(`\s+`)
+		indentChars = *spaces
+	}
+
+	var codeLineList []Line
 
 	scanner := bufio.NewScanner(strings.NewReader(string(highlighted)))
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		lineWithoutTabs := strings.TrimLeft(line, "\t")
+		//count the tabs at the beginning of the line
+		indent := indentRegex.FindString(line)
 
-		totalTabs := len(line) - len(lineWithoutTabs)
+		// get length of indent
+		indentLength := len(indent) / indentChars
 
-		codeLines += fmt.Sprintf("<div class=line data-indent=%d>%s</div>\n", totalTabs, line)
+		codeLine := Line{Indent: indentLength}
+
+		line = strings.Replace(line, "</code></pre></div>", "", -1)
+		line = strings.Replace(line, "<div class=\"highlight\"><pre><code>", "", -1)
+
+		codeLine.Text = fmt.Sprintf("<div class=line data-indent=%d>%s</div>", indentLength, line)
+
+		codeLineList = append(codeLineList, codeLine)
 	}
 
-	fmt.Println(codeLines)
+	for _, line := range codeLineList {
+		fmt.Println(line.Text)
+	}
 }
