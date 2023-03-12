@@ -178,7 +178,6 @@ func main() {
 		}
 
 		if isStartOfBlock {
-			fmt.Println("start of block", line)
 			blockNumber = 0
 			blockLine = 0
 		} else if isEndOfBlock {
@@ -195,10 +194,6 @@ func main() {
 
 		blockNumber = codeLines.AddToList(line, indentLength, blockLine, blockNumber, parentBlockNumber)
 		blockLine++
-
-		if isStartOfBlock {
-			blockLine = 0
-		}
 
 		if strings.HasSuffix(line, "{") {
 			parentBlockNumber = blockNumber
